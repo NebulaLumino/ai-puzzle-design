@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "https://api.deepseek.com/v1",
-});
+export const dynamic = "force-dynamic";
+
+let _client: OpenAI | null = null;
+function getClient() {
+  if (!_client) {
+    _client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: "https://api.deepseek.com/v1",
+    });
+  }
+  return _client;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const { formData, systemPrompt } = await req.json();
     const userMessage = `${systemPrompt}\n\nFORM DATA:\n${JSON.stringify(formData, null, 2)}`;
+    const client = getClient();
     const completion = await client.chat.completions.create({
       model: "deepseek-chat",
       messages: [
