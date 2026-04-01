@@ -1,88 +1,111 @@
 "use client";
+
 import { useState } from "react";
 
-const PUZZLE_TYPES = ["Logic Grid", "Escape Room", "Word/Wordplay", "Lateral Thinking", "Mechanical/Rube Goldberg", "Pattern Recognition", "Cryptic", "Mathematical"];
-const DIFFICULTIES = ["Easy", "Medium", "Hard", "Expert", "Master"];
-const THEMES = ["Ancient Egypt", "Cyberpunk City", "Pirate Treasure", "Space Station", "Haunted Mansion", "Underwater Kingdom", "Wild West", "Fantasy Forest", "Steampunk Factory", "Zen Garden"];
+type FormData = {
+  puzzleType: "Riddle",
+  difficulty: "Easy",
+  theme: "",
+  format: "Text-only",
+  audienceAge: "Kids (6-12)"
+};
 
-export default function PuzzleDesignPage() {
-  const [puzzleType, setPuzzleType] = useState("Escape Room");
-  const [difficulty, setDifficulty] = useState("Medium");
-  const [theme, setTheme] = useState("Cyberpunk City");
-  const [numPuzzles, setNumPuzzles] = useState("3");
+export default function Home() {
+  const [formData, setFormData] = useState<FormData>({
+  puzzleType: "Riddle",
+  difficulty: "Easy",
+  theme: "",
+  format: "Text-only",
+  audienceAge: "Kids (6-12)"
+});
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsGenerating(true);
     setError("");
     setResult("");
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ puzzleType, difficulty, theme, numPuzzles: parseInt(numPuzzles) }),
+        body: JSON.stringify({ formData, systemPrompt: '' + sp_esc + '' }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "Something went wrong."); return; }
-      setResult(data.result);
-    } catch { setError("Failed to generate puzzles."); }
-    finally { setLoading(false); }
+      if (data.error) { setError(data.error); return; }
+      setResult(data.result || "");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-violet-950 via-slate-900 to-violet-950 text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-10 text-center">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-violet-400 to-purple-300 bg-clip-text text-transparent">
-            🧩 AI Puzzle Designer
+    <div className="min-h-screen bg-black text-zinc-100">
+      <div className="max-w-4xl mx-auto p-6">
+        <header className="mb-8">
+          <h1 className={"text-3xl font-bold bg-gradient-to-r from-violet-500 to-purple-600 bg-clip-text text-transparent"}>
+            {'' + title_esc + ''}
           </h1>
-          <p className="text-slate-400">Generate unique, creative puzzles tailored to your specifications</p>
+          <p className="text-zinc-400 mt-2 text-sm">Fill in the options below and generate your game content instantly.</p>
         </header>
 
-        <form onSubmit={handleGenerate} className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 mb-8 border border-violet-500/20 space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-medium text-violet-300 mb-2">Puzzle Type</label>
-              <select value={puzzleType} onChange={e => setPuzzleType(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                {PUZZLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-violet-300 mb-2">Difficulty</label>
-              <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-violet-300 mb-2">Theme / Setting</label>
-              <select value={theme} onChange={e => setTheme(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                {THEMES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-violet-300 mb-2">Number of Puzzles</label>
-              <select value={numPuzzles} onChange={e => setNumPuzzles(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                {[1,2,3,4,5].map(n => <option key={n} value={String(n)}>{n}</option>)}
-              </select>
-            </div>
+        <div className="grid lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
+              <div className="space-y-4">
+<div><label className="block text-sm font-medium text-zinc-300 mb-1.5">Puzzle Type</label><select name="puzzleType" value={formData.puzzleType} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 text-zinc-200">{['Riddle','Logic','Math','Word','Trivia','Escape Room'].map(o=><option key={o} value={o}>{o}</option>)}</select></div>
+<div><label className="block text-sm font-medium text-zinc-300 mb-1.5">Difficulty</label><select name="difficulty" value={formData.difficulty} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 text-zinc-200">{['Easy','Medium','Hard','Expert'].map(o=><option key={o} value={o}>{o}</option>)}</select></div>
+<div><label className="block text-sm font-medium text-zinc-300 mb-1.5">Theme / Topic</label><input type="text" name="theme" value={formData.theme} onChange={handleChange} placeholder="e.g. Space exploration, Medieval knights" className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 text-zinc-200" /></div>
+<div><label className="block text-sm font-medium text-zinc-300 mb-1.5">Format</label><select name="format" value={formData.format} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 text-zinc-200">{['Text-only','Visual Puzzle','Hybrid'].map(o=><option key={o} value={o}>{o}</option>)}</select></div>
+<div><label className="block text-sm font-medium text-zinc-300 mb-1.5">Audience Age Group</label><select name="audienceAge" value={formData.audienceAge} onChange={handleChange} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 text-zinc-200">{['Kids (6-12)','Teens (13-17)','Adults (18+)','All Ages'].map(o=><option key={o} value={o}>{o}</option>)}</select></div>
+              </div>
+              <button
+                type="submit"
+                disabled={isGenerating}
+                className={"w-full bg-violet-600 hover:opacity-90 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl transition-all text-sm"}
+              >
+                {isGenerating ? "Generating..." : "Generate Content"}
+              </button>
+              {error && (
+                <p className="text-red-400 text-sm bg-red-500/10 rounded-lg p-2">{error}</p>
+              )}
+            </form>
           </div>
-          <button type="submit" disabled={loading} className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-xl font-semibold text-white transition-all disabled:opacity-50">
-            {loading ? "Designing Puzzles..." : "🎲 Generate Puzzles"}
-          </button>
-        </form>
 
-        {error && <div className="bg-red-900/40 border border-red-500/40 rounded-xl p-4 text-red-300 mb-6">{error}</div>}
-
-        {result && (
-          <div className="bg-slate-800/60 backdrop-blur rounded-2xl p-6 border border-violet-500/20">
-            <h2 className="text-xl font-bold text-violet-300 mb-4">🎨 Your Puzzles</h2>
-            <div className="prose prose-invert prose-violet max-w-none whitespace-pre-wrap text-slate-200 leading-relaxed">{result}</div>
+          <div className="lg:col-span-3">
+            {result ? (
+              <div className={"bg-violet-500/10 border border-zinc-800 rounded-2xl p-5"}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className={"font-semibold text-violet-400"}>Generated Result</h2>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(result)}
+                    className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded bg-zinc-800"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <div className="prose prose-invert prose-sm max-w-none text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                  {result}
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-600 border-2 border-dashed border-zinc-800 rounded-2xl p-12 min-h-96">
+                <span className="text-4xl mb-4">&#127918;</span>
+                <p className="text-center text-sm">Your generated game content will appear here.</p>
+                <p className="text-center text-xs text-zinc-700 mt-2">Fill out the form and click Generate</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }
