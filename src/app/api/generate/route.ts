@@ -1,38 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "https://api.deepseek.com/v1",
-});
 
 export async function POST(req: NextRequest) {
   try {
-    const { formData, systemPrompt } = await req.json();
-    
-    const userMessage = `${systemPrompt}
+    const { puzzleType, difficulty, theme, numPuzzles } = await req.json();
 
-FORM DATA:
-${JSON.stringify(formData, null, 2)}}`;
+    const prompt = `You are a world-class puzzle designer. Design ${numPuzzles} unique and creative puzzle${numPuzzles > 1 ? 's' : ''} with the following specifications:
 
-    const completion = await client.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert game designer and content creator. Generate detailed, creative, and actionable game content based on the user's form inputs. Format your response clearly with headers, bullet points, and structured sections. Make the content immediately usable by game designers, players, or content creators.",
-        },
-        {
-          role: "user",
-          content: userMessage,
-        },
-      ],
-      temperature: 0.8,
-      max_tokens: 3000,
+- **Puzzle Type:** ${puzzleType}
+- **Difficulty:** ${difficulty}
+- **Theme:** ${theme}
+
+For each puzzle, provide:
+1. **Name** - A catchy, memorable title
+2. **Mechanic** - How the puzzle works (be specific and creative)
+3. **Setup** - What the player sees/has access to
+4. **Solution Hint** - A subtle clue for stuck players
+5. **Difficulty Notes** - Why this is rated at ${difficulty} difficulty
+
+Make the puzzles original, engaging, and varied. Format each puzzle clearly with headers.`;
+
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You are a world-class puzzle designer with expertise in logic puzzles, escape room challenges, lateral thinking, word puzzles, mechanical puzzles, and more. Be creative, specific, and detailed in your designs." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.9,
+        max_tokens: 2000,
+      }),
     });
 
-    return NextResponse.json({ result: completion.choices[0].message.content });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    if (!response.ok) {
+      const err = await response.text();
+      return NextResponse.json({ error: err }, { status: response.status });
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "No response generated.";
+    return NextResponse.json({ result: content });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
